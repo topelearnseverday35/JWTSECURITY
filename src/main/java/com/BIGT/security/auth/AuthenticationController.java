@@ -2,16 +2,15 @@ package com.BIGT.security.auth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/v1/auth")
 @RequiredArgsConstructor
 public class AuthenticationController {
     private final AuthenticationService service;
+
 
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse>register(
@@ -26,5 +25,12 @@ public class AuthenticationController {
     ){
         return ResponseEntity.ok(service.authenticate(request));
 
+    }
+
+    @PutMapping("/update")
+    public  ResponseEntity<AuthenticationResponse>update(
+            @RequestBody UpdateRequest updateRequest,String jwtToken,UserDetails userDetails
+    ){
+        return service.update(updateRequest , jwtToken,  userDetails);
     }
 }
