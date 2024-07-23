@@ -1,86 +1,119 @@
 package com.BIGT.security.auth;
 
 import com.BIGT.security.config.JwtService;
+import com.BIGT.security.config.ValidationClass;
 import com.BIGT.security.user.Role;
 import com.BIGT.security.user.User;
 import com.BIGT.security.user.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
+
 public class AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
+    private final ValidationClass helper;
 
 
-    public AuthenticationResponse register(RegisterRequest request) {
-        var user = User.builder()
-                .firstname(request.getFirstname())
-                .lastname(request.getLastname())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.USER)
-                .build();
+    public String register(RegisterRequest request) {
+        boolean isfirstNameValid = helper.firstname_validation(request);
+        boolean islastNameValid = helper.lastname_validation(request);
+        boolean isemailValid = helper.email_validation(request);
+        boolean ispasswordValid = helper.password_validation(request);
+        if (!isfirstNameValid) {
+            return "Ensure FirstName is properly Inserted";
+        }
+        if (!islastNameValid) {
+            return "Ensure LastName is properly Inserted";
+        }
+        if(!isemailValid){
+            return "Ensure Email is properly Inserted";
 
-        userRepository.save(user);
+        }
+        if(!ispasswordValid){
+            return "Ensure Password is properly Inserted";
+        }
+            var user = User.builder()
+                    .firstname(request.getFirstname())
+                    .lastname(request.getLastname())
+                    .email(request.getEmail())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .role(Role.USER)
+                    .build();
 
-        var jwtToken = jwtService.generateToken(user);
-        return AuthenticationResponse.builder()
-                .token(jwtToken)
-                .build();
-
-    }
-    public ResponseEntity<AuthenticationResponse> update(UpdateRequest updateRequest, String jwtToken, UserDetails userDetails) {
-
-
-        if (jwtService.validateToken(jwtToken, userDetails)) {
-            String email = jwtService.extractUsername(jwtToken);
-            var user = userRepository.findByEmail(email);
-
+            userRepository.save(user);
 
 
-            if (user.isEmpty()) {
-                throw new UsernameNotFoundException("User not found");
-            }
-            User user1 = user.get();
-            user1.setFirstname(updateRequest.getFirstname());
-            user1.setLastname(updateRequest.getLastname());
-            user1.setEmail(updateRequest.getEmail());
-            user1.setPassword(passwordEncoder.encode(updateRequest.getPassword()));
+            return "You have been registered";
 
-            userRepository.save(user1);
 
         }
 
 
-        return new ResponseEntity<>(new AuthenticationResponse(jwtToken,"Email Has been Updated"), HttpStatus.OK);
-
-    }
-
-
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail()
-                        , request.getPassword()
-                )
-        );
+
         var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-           String jwtToken = jwtService.generateToken(user);
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new BadCredentialsException("Invalid password");
+        }
+        String jwtToken = jwtService.generateToken(user);
 
         return AuthenticationResponse.builder()
                 .token(jwtToken)
+                .response("You have been authenticated")
                 .build();
+
+
+    }
+
+
+    public ResponseEntity<AuthenticationResponse> updateUserProfile(String jwtToken, UpdateRequest updateRequest) {
+        // Validate the JWT token and extract user details
+        String userEmail = jwtService.extractUsername(jwtToken);
+
+        // Find the user by email
+        Optional<User> optionalUser = userRepository.findByEmail(userEmail);
+
+        if (optionalUser.isPresent()) {
+            User user = optionalUser.get();
+
+            // Update user details if provided in updateRequest
+            if (updateRequest.getFirstname() != null) {
+                user.setFirstname(updateRequest.getFirstname());
+            }
+            if (updateRequest.getLastname() != null) {
+                user.setLastname(updateRequest.getLastname());
+            }
+            if (updateRequest.getEmail() != null) {
+                user.setEmail(updateRequest.getEmail());
+            }
+            if (updateRequest.getPassword() != null && !updateRequest.getPassword().isEmpty()) {
+                user.setPassword(passwordEncoder.encode(updateRequest.getPassword()));
+            }
+
+            // Save the updated user
+            userRepository.save(user);
+
+            // Return success response
+            return ResponseEntity.ok(new AuthenticationResponse(jwtToken, "User details updated successfully"));
+        } else {
+            // User not found
+            throw new UsernameNotFoundException("User not found with email: " + userEmail);
+        }
     }
 }
+
+
+
+

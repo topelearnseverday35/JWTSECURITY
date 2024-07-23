@@ -1,6 +1,9 @@
 package com.BIGT.security.auth;
 
+import com.BIGT.security.config.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -10,27 +13,35 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthenticationController {
     private final AuthenticationService service;
+    private final JwtService jwtService;
 
 
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse>register(
+    public String register(
             @RequestBody RegisterRequest request
-    ){
-        return ResponseEntity.ok(service.register(request));
+    ) {
+        return service.register(request);
     }
 
     @PostMapping("/authenticate")
-    public ResponseEntity<AuthenticationResponse>authenticate(
+    public ResponseEntity<AuthenticationResponse> authenticate(
             @RequestBody AuthenticationRequest request
-    ){
+
+    ) {
         return ResponseEntity.ok(service.authenticate(request));
 
     }
 
     @PutMapping("/update")
-    public  ResponseEntity<AuthenticationResponse>update(
-            @RequestBody UpdateRequest updateRequest,String jwtToken,UserDetails userDetails
-    ){
-        return service.update(updateRequest , jwtToken,  userDetails);
+    public ResponseEntity<AuthenticationResponse> updateUserDetails(
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION) String jwtToken,
+            @RequestBody UpdateRequest updateRequest
+    ) {
+
+
+        // Call service method to update user details
+        return service.updateUserProfile(jwtToken,updateRequest);
+
+
     }
 }
