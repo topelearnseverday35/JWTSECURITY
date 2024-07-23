@@ -1,8 +1,12 @@
 package com.BIGT.security.auth;
 
+
+import com.BIGT.security.utils.EmailService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
+
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -10,27 +14,45 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthenticationController {
     private final AuthenticationService service;
+    private final Crud crud;
+    private final EmailService emailService;
 
 
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse>register(
-            @RequestBody RegisterRequest request
+    public String register(
+          @Valid @RequestBody RegisterRequest request
+    ) {
+        return crud.register(request);
+    }
+
+    @PostMapping("/verify-email")
+    public String verifyEmail(
+            @RequestBody VerificationRequest verificationRequest
+
     ){
-        return ResponseEntity.ok(service.register(request));
+
+        return crud.verifyEmailByOtp(verificationRequest);
     }
 
     @PostMapping("/authenticate")
-    public ResponseEntity<AuthenticationResponse>authenticate(
+    public ResponseEntity<AuthenticationResponse> authenticate(
             @RequestBody AuthenticationRequest request
-    ){
+
+    ) {
         return ResponseEntity.ok(service.authenticate(request));
 
     }
 
     @PutMapping("/update")
-    public  ResponseEntity<AuthenticationResponse>update(
-            @RequestBody UpdateRequest updateRequest,String jwtToken,UserDetails userDetails
-    ){
-        return service.update(updateRequest , jwtToken,  userDetails);
+    public ResponseEntity<AuthenticationResponse> updateUserDetails(
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION) String jwtToken,
+            @RequestBody UpdateRequest updateRequest
+    ) {
+
+
+        // Call service method to update user details
+        return crud.updateUserProfile(jwtToken,updateRequest);
+
+
     }
 }

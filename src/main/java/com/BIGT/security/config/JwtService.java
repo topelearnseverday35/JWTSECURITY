@@ -19,6 +19,9 @@ import java.util.function.Function;
 @Service
 @Slf4j
 public class JwtService {
+Date now = new Date();
+    @Value("${jwt.expirationMs}")
+    private long jwtExpirationMs;
 
     @Value("${application.secret.key}")
     private String SecretKey;
@@ -50,8 +53,8 @@ public class JwtService {
                 .builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis()+1000 *60*24))
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + jwtExpirationMs))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
