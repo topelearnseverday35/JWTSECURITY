@@ -1,7 +1,7 @@
 package com.BIGT.security.auth;
 
 
-import com.BIGT.security.utils.EmailService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthenticationController {
     private final AuthenticationService service;
     private final Crud crud;
-    private final EmailService emailService;
+
 
 
     @PostMapping("/register")
